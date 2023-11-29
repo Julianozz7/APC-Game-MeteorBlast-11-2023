@@ -10,21 +10,22 @@ Projeto Final - Parte 1
 Descricao: < breve descricao do programa >
 """
 import pygame, sys
+from pygame import mixer
 pygame.init()
 import random
 
 fps = 20
 FramesPerSecond = pygame.time.Clock() 
 
-#variáveis ???
+#variáveis de configurações jogo
 tamanho = 5
-altura_tabuleiro, largura_tabuleiro = 10, 135
+altura_tela_jogo, largura_tela_jogo = 550, 800
 probX, probF = 0, 0
 combustivel, pontos = 400, 0
 
 #fontes
-fonteNomeJogo = pygame.font.SysFont('Impact',120)
-fonteSubtitulo = pygame.font.SysFont('Arial', 20)
+fonteNomeJogo = pygame.font.Font('fonts/highspeed.ttf',70)
+fonteSubtitulo = pygame.font.Font('fonts/highspeed.ttf', 15)
 
 #cores pré-definidas
 AZUL = (0, 0, 255)
@@ -33,20 +34,47 @@ VERDE = (0, 255, 0)
 PRETO = (0, 0, 0)
 BRANCO = (255, 255, 255)
 
-#variáveis de configuração
+#variáveis de configuração do programa
 nomeJogo = 'Meteor Blast'
-tela = "TELAINICIAL" #está varíavel mantém a ordem de ações do jogo
+tela = "TELAINICIAL" #está varíavel guia a ordem de ações do jogo
 altura_tela_inicial_e_menu, largura_tela_inicial_e_menu = 550, 800
 titulo = fonteNomeJogo.render(nomeJogo,True,BRANCO)
 
 #imagens
-imagemTelaInicial = pygame.image.load('assets/menuImageSpace.jpg') 
+imagemBackGround = pygame.image.load('assets/menuImageSpace.jpg') 
+imagemBackGroundJogo = pygame.image.load('assets/menuImageSpace.jpg')
+
+#background song
+mixer.music.load('sound/ElevenMine.mp3')
+mixer.music.play(-1)
+
+#tela do jogo
+def jogo():
+    global tela
+
+    #esta parte cria e mostra a tela de jogabilidade
+    tela_menu = pygame.display.set_mode((largura_tela_jogo,altura_tela_jogo))
+    tela_menu.blit(imagemBackGroundJogo, (0, 0))
+    pygame.display.set_caption(nomeJogo)
+
+    #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
+    run = True
+    while run:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        pygame.display.update()
+        FramesPerSecond.tick(fps)
 
 #tela menu de jogar, configurações, ranking, instruções, sair
 def menu_opcoes():
+    global tela
+
+    #esta parte cria e mostra uma segunda tela do jogo
     tela_menu = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
-    tela_menu.blit(imagemTelaInicial, (0, 0))
-    #tela_menu.fill(PRETO)
+    tela_menu.blit(imagemBackGround, (0, 0))
     pygame.display.set_caption(nomeJogo)
 
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
@@ -55,48 +83,57 @@ def menu_opcoes():
         
         #essa tela mostra o título e subtítulos na segunda tela do jogo
         def segunda_tela(tela_menu):
-            tela_menu.blit(titulo,(90,160))   
+            tela_menu.blit(titulo,(30,200))   
             subtitulo1 = fonteSubtitulo.render('Escolha uma opção:',True,BRANCO)
-            tela_menu.blit(subtitulo1,(170,310))
+            tela_menu.blit(subtitulo1,(260,300))
             subtitulo2 = fonteSubtitulo.render('1 - Jogar',True,BRANCO)
-            tela_menu.blit(subtitulo2,(400,310))
+            tela_menu.blit(subtitulo2,(310,340))
             subtitulo3 = fonteSubtitulo.render('2 - Configurações',True,BRANCO)
-            tela_menu.blit(subtitulo3,(400,340))
+            tela_menu.blit(subtitulo3,(310,370))
             subtitulo4 = fonteSubtitulo.render('3 - Ranking',True,BRANCO)
-            tela_menu.blit(subtitulo4,(400,370))
+            tela_menu.blit(subtitulo4,(310,400))
             subtitulo5 = fonteSubtitulo.render('4 - Intruções',True,BRANCO)
-            tela_menu.blit(subtitulo5,(400,400))
+            tela_menu.blit(subtitulo5,(310,430))
             subtitulo6 = fonteSubtitulo.render('5 - Sair',True,BRANCO)
-            tela_menu.blit(subtitulo6,(400,430))
+            tela_menu.blit(subtitulo6,(310,460))
             pygame.display.flip()
         
         segunda_tela(tela_menu)
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+            
+            #as keys direcionam a outras funções e/ou comandos
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    tela = 'JOGO'
+                    jogo()
+                    run = False
+                elif event.key == pygame.K_5:
+                    run = False
 
         pygame.display.update()
         FramesPerSecond.tick(fps)
 
 #tela de início
 def menu_inicial():
-    
+    global tela
+
     #esta parte cria e mostra uma tela inicial
     tela_inicial = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
-    tela_inicial.blit(imagemTelaInicial, (0, 0))
-    #tela_inicial.fill(PRETO)
+    tela_inicial.blit(imagemBackGround, (0, 0))
     pygame.display.set_caption(nomeJogo) 
 
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
     run = True
     while run:
-        
+
         #essa tela mostra o título e subtítulo na primeira tela do jogo
         def primeira_tela(tela_inicial):
-            tela_inicial.blit(titulo,(90,160))   
+            tela_inicial.blit(titulo,(30,200))   
             subtitulo = fonteSubtitulo.render('Bem vindo jogador, pressione enter para continuar!',True,BRANCO)
-            tela_inicial.blit(subtitulo,(170,310))
+            tela_inicial.blit(subtitulo,(90,310))
             pygame.display.flip()
         
         primeira_tela(tela_inicial)
@@ -106,11 +143,12 @@ def menu_inicial():
             if event.type == pygame.QUIT:
                 pygame.quit()
             
+            #as keys direcionam a outras funções e/ou comandos
             elif event.type == pygame.KEYDOWN:
                 if tela == 'TELAINICIAL' and event.key == pygame.K_RETURN:
-                    tela == 'MENU'
+                    tela = 'MENU'
                     menu_opcoes()
-                    run == False
+                    run = False
 
         pygame.display.update()
         FramesPerSecond.tick(fps)
