@@ -9,7 +9,7 @@ Matricula: 232003590
 Projeto Final - Parte 1
 Descricao: < breve descricao do programa >
 """
-import pygame, sys
+import pygame
 from pygame import mixer
 pygame.init()
 import random
@@ -47,15 +47,62 @@ imagemBackGroundJogo = pygame.image.load('assets/menuImageSpace.jpg')
 #background song
 mixer.music.load('sound/ElevenMine.mp3')
 mixer.music.play(-1)
+mixer.music.set_volume(0)
 
 #tela do jogo
 def jogo():
     global tela
 
     #esta parte cria e mostra a tela de jogabilidade
-    tela_menu = pygame.display.set_mode((largura_tela_jogo,altura_tela_jogo))
-    tela_menu.blit(imagemBackGroundJogo, (0, 0))
+    tela_jogo = pygame.display.set_mode((largura_tela_jogo,altura_tela_jogo))
     pygame.display.set_caption(nomeJogo)
+
+    #criação da classe jogador
+    class Spaceship(pygame.sprite.Sprite):
+        def __init__(jogador, x, y):
+            pygame.sprite.Sprite.__init__(jogador)
+            jogador.image = pygame.image.load('assets/spaceship.png')
+            jogador.rect = jogador.image.get_rect()
+            jogador.rect.center = [x, y]
+            jogador.ultimo_tiro = pygame.time.get_ticks()
+
+        def update(jogador):
+            #velocidade de movimentação da nave
+            velocidade_nave = 8
+            #variavel cooldown do tempo do tiro
+            cooldown = 500 #milisegundos
+            #grava o tempo atual, serve para comparar junto com outra variável o tempo do último tiro com o tempo atual
+            tempo_agora = pygame.time.get_ticks()
+
+            #movimentação de acordo com a tecla pressionada
+            key = pygame.key.get_pressed()
+            if key[pygame.K_w] and jogador.rect.top > 0:
+                jogador.rect.y -= velocidade_nave
+            if key[pygame.K_s] and jogador.rect.bottom < altura_tela_jogo:
+                jogador.rect.y += velocidade_nave
+
+            #tiro, atira-se pressionando space e existe um cooldown de um tiro para outro  
+            if key[pygame.K_SPACE] and tempo_agora - jogador.ultimo_tiro > cooldown:
+                bullets = Tiro(jogador.rect.centerx, jogador.rect.top)
+                bullet_group.add(bullets)
+                jogador.ultimo_tiro = tempo_agora
+
+    #classe de tiro  
+    class Tiro(pygame.sprite.Sprite):
+        def __init__(bullet, x, y):
+            pygame.sprite.Sprite.__init__(bullet)
+            bullet.image = pygame.image.load('assets/bullet.png')
+            bullet.rect = bullet.image.get_rect()
+            bullet.rect.center = [x + 30, y + 37] #posiciona onde o tiro sai, está ajustado para sair da cabeça da nave
+        
+        def update(bullet):
+            bullet.rect.x += 5 #"velocidade" de propagação do tiro no eixo x
+
+    spaceship_group = pygame.sprite.Group()
+    bullet_group = pygame.sprite.Group()
+
+    spaceship = Spaceship(largura_tela_jogo // 9, altura_tela_jogo - 270) #determina a posição da nave no mapa
+    spaceship_group.add(spaceship)
 
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
     run = True
@@ -65,8 +112,21 @@ def jogo():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
-        pygame.display.update()
+        #atualiza a sprite de movimentação do jogador
+        spaceship.update()
+
+        #atualize as sprites dos demais grupos
+        bullet_group.update()
+
+        #faz o display da tela e a limpa para não ficar rastros
+        tela_jogo.blit(imagemBackGroundJogo, (0, 0))
+
+        #desenho os sprites na tela
+        spaceship_group.draw(tela_jogo)
+        bullet_group.draw(tela_jogo)
+
         FramesPerSecond.tick(fps)
+        pygame.display.update()
 
 #tela menu de jogar, configurações, ranking, instruções, sair
 def menu_opcoes():
