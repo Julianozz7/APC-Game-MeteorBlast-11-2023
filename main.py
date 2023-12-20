@@ -20,7 +20,13 @@ FramesPerSecond = pygame.time.Clock()
 #variáveis de configurações jogo
 tamanho = 5
 altura_tela_jogo, largura_tela_jogo = 550, 800
-probX, probF = 0, 0
+'''a probInimigoAparecer funciona da seguinte maneira:
+ ela começa em um número n e vai aumentando até chegar 
+ na probInimigoMáxima, qualquer pequena alteração nas probabilidades
+ aumenta bastante a dificuldade'''
+probInimigoAparecer = 3 
+probInimigoMaxima = 5 #"dificuldade máxima"
+probCombustivelAparecer = 0
 combustivel, pontos = 400, 0
 
 #fontes
@@ -35,7 +41,7 @@ PRETO = (0, 0, 0)
 BRANCO = (255, 255, 255)
 
 #variáveis de configuração do programa
-nomeJogo = 'Meteor Blast'
+nomeJogo = 'Star Blaster'
 tela = "TELAINICIAL" #está varíavel guia a ordem de ações do jogo
 altura_tela_inicial_e_menu, largura_tela_inicial_e_menu = 550, 800
 titulo = fonteNomeJogo.render(nomeJogo,True,BRANCO)
@@ -51,13 +57,13 @@ mixer.music.set_volume(0)
 
 #tela do jogo
 def jogo():
-    global tela
+    global tela, probInimigoAparecer, probInimigoMaxima
 
     #esta parte cria e mostra a tela de jogabilidade
     tela_jogo = pygame.display.set_mode((largura_tela_jogo,altura_tela_jogo))
     pygame.display.set_caption(nomeJogo)
 
-    #criação da classe jogador
+    #classe de jogador
     class Spaceship(pygame.sprite.Sprite):
         def __init__(jogador, x, y):
             pygame.sprite.Sprite.__init__(jogador)
@@ -68,7 +74,7 @@ def jogo():
 
         def update(jogador):
             #velocidade de movimentação da nave
-            velocidade_nave = 8
+            velocidade_nave = 10
             #variavel cooldown do tempo do tiro
             cooldown = 500 #milisegundos
             #grava o tempo atual, serve para comparar junto com outra variável o tempo do último tiro com o tempo atual
@@ -94,15 +100,42 @@ def jogo():
             bullet.image = pygame.image.load('assets/bullet.png')
             bullet.rect = bullet.image.get_rect()
             bullet.rect.center = [x + 30, y + 37] #posiciona onde o tiro sai, está ajustado para sair da cabeça da nave
-        
-        def update(bullet):
-            bullet.rect.x += 5 #"velocidade" de propagação do tiro no eixo x
 
+        def update(bullet):
+            bullet.rect.x += 10 #"velocidade" de propagação do tiro no eixo x
+            if bullet.rect.x > 784: #é o "alcance" que o tiro tem, o alcance é limitado por determinado valor do eixo x
+                bullet.kill() #para não ficar utilizando memória, o tiro é destruído quando chega no limite do alcance
+
+    #classe de inimigo 
+    class Inimigo(pygame.sprite.Sprite):
+        def __init__(inimigo, x, y):
+            pygame.sprite.Sprite.__init__(inimigo)
+            inimigo.image = pygame.image.load('assets/alien' + str(random.randint(1,4)) + '.png') #random gera um número de 1 a 3 e escolhe a imagem do alien aleatoriamente
+            inimigo.rect = inimigo.image.get_rect()
+            inimigo.rect.x = x
+            inimigo.rect.y = y
+            inimigo.velocidade = random.randint(3, 7)  #velocidade aleatória do inimigo
+                
+        def update(inimigo):
+            inimigo.rect.x -= inimigo.velocidade
+
+            if inimigo.rect.right < 0:
+                inimigo.kill() #remove o inimigo quando ele estiver fora da tela
+
+
+    #criação das sprites dos grupos
     spaceship_group = pygame.sprite.Group()
     bullet_group = pygame.sprite.Group()
+    inimigo_group = pygame.sprite.Group()
 
     spaceship = Spaceship(largura_tela_jogo // 9, altura_tela_jogo - 270) #determina a posição da nave no mapa
     spaceship_group.add(spaceship)
+
+    def cria_inimigo():
+        randomicoEixoY = random.randint(0, altura_tela_jogo - 50)
+        #cria o inimigo no canto direito da tela
+        alien = Inimigo(largura_tela_jogo, randomicoEixoY)
+        inimigo_group.add(alien)
 
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
     run = True
@@ -112,18 +145,29 @@ def jogo():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
+        #cria um novo inimigo com uma chance aleatória
+        if random.randint(1, 100) < probInimigoAparecer: 
+            #a dificuldade vai aumentando de acordo com o número escolhido, até um nível máximo
+            if probInimigoAparecer < probInimigoMaxima:
+                probInimigoAparecer += 0.10
+            elif probInimigoAparecer >= probInimigoMaxima:
+                probInimigoAparecer = probInimigoMaxima
+            cria_inimigo()
+
         #atualiza a sprite de movimentação do jogador
         spaceship.update()
 
         #atualize as sprites dos demais grupos
         bullet_group.update()
+        inimigo_group.update()
 
         #faz o display da tela e a limpa para não ficar rastros
         tela_jogo.blit(imagemBackGroundJogo, (0, 0))
 
-        #desenho os sprites na tela
+        #desenha os sprites na tela
         spaceship_group.draw(tela_jogo)
         bullet_group.draw(tela_jogo)
+        inimigo_group.draw(tela_jogo)
 
         FramesPerSecond.tick(fps)
         pygame.display.update()
@@ -207,8 +251,9 @@ def menu_inicial():
             elif event.type == pygame.KEYDOWN:
                 if tela == 'TELAINICIAL' and event.key == pygame.K_RETURN:
                     tela = 'MENU'
-                    menu_opcoes()
                     run = False
+                    menu_opcoes()
+                    
 
         pygame.display.update()
         FramesPerSecond.tick(fps)
