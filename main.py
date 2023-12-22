@@ -24,10 +24,11 @@ altura_tela_jogo, largura_tela_jogo = 550, 800
  ela começa em um número n e vai aumentando até chegar 
  na probInimigoMáxima, qualquer pequena alteração nas probabilidades
  aumenta bastante a dificuldade'''
-probInimigoAparecer = 4
-probInimigoMaxima = 8 #"dificuldade máxima"
+probInimigoAparecer = 3
+probInimigoMaxima = 7 #"dificuldade máxima"
 probCombustivelAparecer = 0
-combustivel, pontos = 400, 0
+valor_inicial_combustivel = 400 #isto serve para na tela de game over o combustivel voltar a ter o valor inicial
+combustivel, pontos = valor_inicial_combustivel, 0
 
 #fontes
 fonteNomeJogo = pygame.font.Font('fonts/highspeed.ttf',70)
@@ -43,7 +44,6 @@ BRANCO = (255, 255, 255)
 
 #variáveis de configuração do programa
 nomeJogo = 'Star Blaster'
-tela = "TELAINICIAL" #está varíavel guia a ordem de ações do jogo
 altura_tela_inicial_e_menu, largura_tela_inicial_e_menu = 550, 800
 titulo = fonteNomeJogo.render(nomeJogo,True,BRANCO)
 
@@ -52,12 +52,13 @@ imagemBackGround = pygame.image.load('assets/menuImageSpace.jpg')
 imagemBackGroundJogo = pygame.image.load('assets/menuImageSpace.jpg')
 
 #background song
-mixer.music.load('sound/ElevenMine.mp3')
+mixer.music.load('sound/Interstellar by HansZimmer.mp3')
 mixer.music.play(-1)
-mixer.music.set_volume(0)
+mixer.music.set_volume(0.3) #volume
 
 #tela de game over
 def game_over():
+    global pontos, combustivel
 
     #esta parte cria e mostra uma última tela
     tela_gameover = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
@@ -85,12 +86,25 @@ def game_over():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
+            #as keys direcionam a outras funções e/ou comandos
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1: #reiniciar
+                    pontos = 0
+                    combustivel = valor_inicial_combustivel
+                    run = False
+                    jogo()
+                elif event.key == pygame.K_2: #menu_opcoes
+                    pontos = 0
+                    combustivel = valor_inicial_combustivel
+                    menu_opcoes()
+                    run = False
+
         pygame.display.update()
         FramesPerSecond.tick(fps)
 
 #tela do jogo
 def jogo():
-    global tela, probInimigoAparecer, probInimigoMaxima
+    global probInimigoAparecer, probInimigoMaxima
 
     #esta parte cria e mostra a tela de jogabilidade
     tela_jogo = pygame.display.set_mode((largura_tela_jogo,altura_tela_jogo))
@@ -106,6 +120,7 @@ def jogo():
             jogador.ultimo_tiro = pygame.time.get_ticks()
 
         def update(jogador):
+            global combustivel
             #velocidade de movimentação da nave
             velocidade_nave = 10
             #variavel cooldown do tempo do tiro
@@ -113,22 +128,38 @@ def jogo():
             #grava o tempo atual, serve para comparar junto com outra variável o tempo do último tiro com o tempo atual
             tempo_agora = pygame.time.get_ticks()
 
+            #colisão entre jogador e inimigo é game over
             colisoes_inimigo_jogador = pygame.sprite.spritecollide(jogador, inimigo_group, False)
             if colisoes_inimigo_jogador:
                 game_over()
+
+            #colisão entre jogador e combustivel aumenta em 40 unidades o combustivel
+            colisoes_combustivel_jogador = pygame.sprite.spritecollide(jogador, combustivel_group, False)
+            if colisoes_combustivel_jogador:
+                combustivel += 3.5 #2,3 = 40 unidades
 
             #movimentação de acordo com a tecla pressionada
             key = pygame.key.get_pressed()
             if key[pygame.K_w] and jogador.rect.top > 0:
                 jogador.rect.y -= velocidade_nave
+                combustivel -= 1 #movimentar gasta n qnt_combustivel
             if key[pygame.K_s] and jogador.rect.bottom < altura_tela_jogo:
                 jogador.rect.y += velocidade_nave
+                combustivel -= 1 #movimentar gasta n qnt_combustivel
 
             #tiro, atira-se pressionando space e existe um cooldown de um tiro para outro  
             if key[pygame.K_SPACE] and tempo_agora - jogador.ultimo_tiro > cooldown:
                 bullets = Tiro(jogador.rect.centerx, jogador.rect.top)
                 bullet_group.add(bullets)
                 jogador.ultimo_tiro = tempo_agora
+                combustivel -= 1.4 #atirar gasta n qnt_combustivel
+            
+            #decrementar n ponto de combustível se o jogador não estiver se movimentando
+            if not key[pygame.K_w] and not key[pygame.K_s]:
+                combustivel -= 0.1
+
+            if combustivel <= 0:
+                game_over()
 
     #classe de tiro  
     class Tiro(pygame.sprite.Sprite):
@@ -151,7 +182,7 @@ def jogo():
             inimigo.rect = inimigo.image.get_rect()
             inimigo.rect.x = x
             inimigo.rect.y = y
-            inimigo.velocidade = random.randint(3, 7)  #velocidade aleatória do inimigo
+            inimigo.velocidade = random.randint(3, 9)  #velocidade aleatória do inimigo
                 
         def update(inimigo):
             global pontos
@@ -165,10 +196,32 @@ def jogo():
                 inimigo.kill()  #remove o inimigo quando há colisão
                 pontos += 50
 
+    #classe de combustivel
+    class Combustivel(pygame.sprite.Sprite):
+        def __init__(fuel, x, y):
+            pygame.sprite.Sprite.__init__(fuel)
+            fuel.image = pygame.image.load('assets/gasolina.png') 
+            fuel.rect = fuel.image.get_rect()
+            fuel.rect.x = x
+            fuel.rect.y = y
+            fuel.velocidade = random.randint(4, 7)  #velocidade aleatória do combustível
+                
+        def update(fuel):
+            global pontos
+            fuel.rect.x -= fuel.velocidade #movimentação do combustível no eixo x
+
+            if fuel.rect.right < 0:
+                fuel.kill() #remove o combustivel quando ele estiver fora da tela
+                
+            colisoes_combustivel_tiro = pygame.sprite.spritecollide(fuel, bullet_group, True)  #remove o tiro ao colidir com o combustivel
+            if colisoes_combustivel_tiro:
+                fuel.kill()  #remove o combustivel quando há colisão
+
     #criação das sprites dos grupos
     spaceship_group = pygame.sprite.Group()
     bullet_group = pygame.sprite.Group()
     inimigo_group = pygame.sprite.Group()
+    combustivel_group = pygame.sprite.Group()
 
     spaceship = Spaceship(largura_tela_jogo // 9, altura_tela_jogo - 270) #determina a posição da nave no mapa
     spaceship_group.add(spaceship)
@@ -178,6 +231,12 @@ def jogo():
         #cria o inimigo no canto direito da tela
         alien = Inimigo(largura_tela_jogo, randomicoEixoY)
         inimigo_group.add(alien)
+        
+    def cria_combustivel():
+        randomicoEixoY = random.randint(0, altura_tela_jogo - 50)
+        #cria o combustivel no canto direito da tela
+        c = Combustivel(largura_tela_jogo, randomicoEixoY)
+        combustivel_group.add(c)
 
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
     run = True
@@ -186,9 +245,9 @@ def jogo():
         def terceira_tela(tela_jogo):
             #esta função é responsável por exibir os pontos e combústivel na tela
             points = fonte_pontosEcombustivel.render(f'Pontos: {pontos}',True,BRANCO)
-            tela_jogo.blit(points,(15,6))
-            fuel = fonte_pontosEcombustivel.render(f'Combustível: {combustivel}',True,BRANCO)
-            tela_jogo.blit(fuel,(590,6))
+            tela_jogo.blit(points,(10,15))
+            fuel = fonte_pontosEcombustivel.render(f'Combustível: {combustivel:.0f}',True,BRANCO)
+            tela_jogo.blit(fuel,(10,520))
             pygame.display.flip()
 
         terceira_tela(tela_jogo)
@@ -205,12 +264,17 @@ def jogo():
             elif probInimigoAparecer >= probInimigoMaxima:
                 probInimigoAparecer = probInimigoMaxima
             cria_inimigo()
+        
+        #cria um novo combustível com uma chance aleatória
+        if random.randint(0, 100) < 2: 
+            cria_combustivel()
 
         #atualiza a sprite de movimentação do jogador
         spaceship.update()
         #atualize as sprites dos demais grupos
         bullet_group.update()
         inimigo_group.update()
+        combustivel_group.update()
 
         #faz o display da tela e a atualiza para não ficar rastros
         tela_jogo.blit(imagemBackGroundJogo, (0, 0))
@@ -219,13 +283,13 @@ def jogo():
         spaceship_group.draw(tela_jogo)
         bullet_group.draw(tela_jogo)
         inimigo_group.draw(tela_jogo)
+        combustivel_group.draw(tela_jogo)
 
         FramesPerSecond.tick(fps)
         pygame.display.update()
 
 #tela menu de jogar, configurações, ranking, instruções, sair
 def menu_opcoes():
-    global tela
 
     #esta parte cria e mostra uma segunda tela do jogo
     tela_menu = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
@@ -264,15 +328,15 @@ def menu_opcoes():
                     tela = 'JOGO'
                     jogo()
                     run = False
+
                 elif event.key == pygame.K_5:
-                    run = False
+                    pygame.quit()
 
         pygame.display.update()
         FramesPerSecond.tick(fps)
 
 #tela de início
 def menu_inicial():
-    global tela
 
     #esta parte cria e mostra uma tela inicial
     tela_inicial = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
@@ -299,12 +363,10 @@ def menu_inicial():
             
             #as keys direcionam a outras funções e/ou comandos
             elif event.type == pygame.KEYDOWN:
-                if tela == 'TELAINICIAL' and event.key == pygame.K_RETURN:
-                    tela = 'MENU'
-                    run = False
+                if event.key == pygame.K_RETURN:
                     menu_opcoes()
+                    run = False
                     
-
         pygame.display.update()
         FramesPerSecond.tick(fps)
 
