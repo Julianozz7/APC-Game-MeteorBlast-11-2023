@@ -5,9 +5,15 @@ Departamento de Ciencia da Computacao
 Algoritmos e Programação de Computadores - 2/2023
 Turma: Prof. Carla Castanho e Prof. Frank Ned
 Aluno: Juliano dos Santos da Costa
-Matricula: 232003590
 Projeto Final - Parte 1
-Descricao: < breve descricao do programa >
+
+DESCRIÇÃO: Star Blaster é um jogo controlado por uma nave com o intuito de matar o máximo de inimigos 
+possíveis antes que o seu combustível acabe ou que algum inimigo se choque com a nave. É possível matar
+esses inimigos atirando neles, porém também há o perigo de você atirar em tanques de combustível,
+feito isso esses tanques também somem. Os tanques servem para você recuperar combustível e não ficar 
+preso no espaço. 
+A elaboração desse jogo foi fenomenal para o meu aprendizado e ganho de conhecimento, depois de horas 
+de esforço estou satisfeito com o trabalho feito até agora. São 463 linhas de apenas o começo.
 """
 import pygame
 from pygame import mixer
@@ -29,11 +35,14 @@ probInimigoMaxima = 7 #"dificuldade máxima"
 probCombustivelAparecer = 0
 valor_inicial_combustivel = 400 #isto serve para na tela de game over o combustivel voltar a ter o valor inicial
 combustivel, pontos = valor_inicial_combustivel, 0
+mensagem = '' #é a mensagem que diz o motivo do game over
 
 #fontes
 fonteNomeJogo = pygame.font.Font('fonts/highspeed.ttf',70)
 fonteSubtitulo = pygame.font.Font('fonts/highspeed.ttf', 15)
 fonte_pontosEcombustivel = pygame.font.Font('fonts/highspeed.ttf', 15)
+fonte_pontuacao = pygame.font.Font('fonts/highspeed.ttf', 17)
+fonteTexto = pygame.font.SysFont('Arial', 15)
 
 #cores pré-definidas
 AZUL = (0, 0, 255)
@@ -68,17 +77,19 @@ def game_over():
     #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
     run = True
     while run:
-
+        global mensagem
         #essa tela mostra uma mensagem de Game Over(utiliza a fonte do nome do jogo), a pontuação, uma mensagem de reiniciar ou voltar ao menu de opções
         def quarta_tela(tela_gameover):
             gameover = fonteNomeJogo.render('Game Over',True,BRANCO)
-            tela_gameover.blit(gameover,(110,200))
-            pontuaçãofinal = fonteSubtitulo.render(f'Pontuação final: {pontos}',True, VERDE)
-            tela_gameover.blit(pontuaçãofinal,(260,300))
+            tela_gameover.blit(gameover,(110,180))
+            pontuaçãofinal = fonte_pontuacao.render(f'Pontuação final: {pontos}',True, VERDE)
+            tela_gameover.blit(pontuaçãofinal,(270,330))
             reiniciar = fonteSubtitulo.render('1 - Reiniciar',True,BRANCO)
-            tela_gameover.blit(reiniciar, (190,400))
+            tela_gameover.blit(reiniciar, (200,415))
             menu = fonteSubtitulo.render('2 - Menu Principal',True,BRANCO)
-            tela_gameover.blit(menu, (380,400))
+            tela_gameover.blit(menu, (400,415))
+            mensagem_morte = fonteTexto.render(mensagem,True,VERMELHO)
+            tela_gameover.blit(mensagem_morte, (300,280))
 
         quarta_tela(tela_gameover)
 
@@ -120,7 +131,7 @@ def jogo():
             jogador.ultimo_tiro = pygame.time.get_ticks()
 
         def update(jogador):
-            global combustivel
+            global combustivel, mensagem
             #velocidade de movimentação da nave
             velocidade_nave = 10
             #variavel cooldown do tempo do tiro
@@ -131,12 +142,13 @@ def jogo():
             #colisão entre jogador e inimigo é game over
             colisoes_inimigo_jogador = pygame.sprite.spritecollide(jogador, inimigo_group, False)
             if colisoes_inimigo_jogador:
+                mensagem = 'Um inimigo te matou'
                 game_over()
 
             #colisão entre jogador e combustivel aumenta em 40 unidades o combustivel
             colisoes_combustivel_jogador = pygame.sprite.spritecollide(jogador, combustivel_group, False)
             if colisoes_combustivel_jogador:
-                combustivel += 3.5 #2,3 = 40 unidades
+                combustivel += 2.9 #2,3 = 40 unidades
 
             #movimentação de acordo com a tecla pressionada
             key = pygame.key.get_pressed()
@@ -159,8 +171,9 @@ def jogo():
                 combustivel -= 0.1
 
             if combustivel <= 0:
+                mensagem = 'Seu combustível acabou' 
                 game_over()
-
+                     
     #classe de tiro  
     class Tiro(pygame.sprite.Sprite):
         def __init__(bullet, x, y):
@@ -288,6 +301,81 @@ def jogo():
         FramesPerSecond.tick(fps)
         pygame.display.update()
 
+#tela de instruções do jogo
+def instrucoes():
+
+    #esta parte cria e mostra uma quinta tela do jogo
+    tela_instrucoes = pygame.display.set_mode((largura_tela_inicial_e_menu,altura_tela_inicial_e_menu))
+    pygame.display.set_caption(nomeJogo)
+
+    #texto e iteração para exibir o texto na tela
+    def instrucoes_jogo(tela_instrucoes):
+        instrucoes_texto = [
+            "Instruções do Jogo",
+            "",
+            "Spaceship:",
+            "- Use W e S para mover a nave para cima e para baixo.",
+            "- Pressione SPACE para atirar e eliminar os inimigos.",
+            "",
+            "Combustível:",
+            "- A nave começa com 400 unidades de combustível.",
+            "- Perde combustível com o tempo e ações:",
+            "- Movendo-se: -2 unidades;  Atirando: -3 unidades;  Parada: -1 unidade.",
+            "- Recupere combustível coletando tanques de combustível que aparecem à direita da tela.",
+            "",
+            "Inimigos:",
+            "- Objetivo: eliminar o máximo de inimigos possível.",
+            "- Inimigos aparecem aleatoriamente à direita e movem-se para a esquerda.",
+            "- Alguns são mais rápidos.",
+            "- Elimine atirando. Se alcançarem a nave, é game over.",
+            "- Dificuldade aumenta com o tempo até um limite de dificuldade configurável.",
+            "",
+            "Game Over:",
+            "- O jogo termina se o combustível atingir 0 ou se um inimigo alcançar a nave.",
+            "- Caso reinicie o jogo, o nível de dificuldade permanece o mesmo do momento que morreu.",
+            "",
+            "Dica: Gerencie combustível e elimine inimigos para sobreviver!",
+            ""
+        ]
+
+        #posição inicial y
+        posicao_Y = 10
+
+        for linha in instrucoes_texto:
+            if linha == "":
+                posicao_Y += 5  #espaço entre os parágrafos
+            else:
+                if linha.startswith("- "):
+                    texto = fonteTexto.render(linha, True, BRANCO)
+                else:
+                    texto = fonteSubtitulo.render(linha, True, AZUL)
+
+                retangulo = texto.get_rect(center=(400, posicao_Y))
+                tela_instrucoes.blit(texto, retangulo)
+
+                posicao_Y += 27  #espaçamento para a próxima linha
+
+    #desde que o looping seja True ele continua rodando, caso contrário o pygame fecha
+    run = True
+    while run:
+        tela_instrucoes.fill(PRETO) #backgroung preto
+
+        voltar = fonteSubtitulo.render('1 - Voltar',True,VERDE)  #aperte 1 para voltar ao menu_opções
+        tela_instrucoes.blit(voltar,(10,6))
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    menu_opcoes()
+                    run = False
+
+        instrucoes_jogo(tela_instrucoes)
+
+        pygame.display.update()
+        FramesPerSecond.tick(fps)
+
 #tela menu de jogar, configurações, ranking, instruções, sair
 def menu_opcoes():
 
@@ -325,10 +413,11 @@ def menu_opcoes():
             #as keys direcionam a outras funções e/ou comandos
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
-                    tela = 'JOGO'
                     jogo()
                     run = False
-
+                elif event.key == pygame.K_4:
+                    instrucoes()
+                    run = False
                 elif event.key == pygame.K_5:
                     pygame.quit()
 
