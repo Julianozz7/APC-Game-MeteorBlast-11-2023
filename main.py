@@ -5,6 +5,7 @@ Departamento de Ciencia da Computacao
 Algoritmos e Programação de Computadores - 2/2023
 Turma: Prof. Carla Castanho e Prof. Frank Ned
 Aluno: Juliano dos Santos da Costa
+Matricula: 232003590
 Projeto Final - Parte 1
 
 DESCRIÇÃO: Star Blaster é um jogo controlado por uma nave com o intuito de matar o máximo de inimigos 
@@ -88,7 +89,7 @@ def game_over():
             tela_gameover.blit(reiniciar, (200,415))
             menu = fonteSubtitulo.render('2 - Menu Principal',True,BRANCO)
             tela_gameover.blit(menu, (400,415))
-            mensagem_morte = fonteTexto.render(mensagem,True,VERMELHO)
+            mensagem_morte = fonteSubtitulo.render(mensagem,True,VERMELHO)
             tela_gameover.blit(mensagem_morte, (300,280))
 
         quarta_tela(tela_gameover)
